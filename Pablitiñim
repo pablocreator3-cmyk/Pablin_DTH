@@ -1,0 +1,178 @@
+-- [[ ⚡ DTH HUB V8 - PESTAÑAS ORGANIZADAS ⚡ ]]
+-- Estructura: Training | Rocks | Combat | TP | Gifts
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "⚡ Súper DTH Hub | By Pablito ⚡",
+   LoadingTitle = "Organizando Pestañas...",
+   LoadingSubtitle = "Muscle Legends Edition",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false
+})
+
+-- Variables de Estado
+getgenv().fastPunch = false
+getgenv().fastWeight = false
+getgenv().autoKill = false
+getgenv().autoFarm = false
+getgenv().killRange = 150
+local selectrock = ""
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+
+-- --- FUNCIÓN DE EQUIPACIÓN ---
+local function equip(name)
+    local char = LocalPlayer.Character
+    if char then
+        local tool = LocalPlayer.Backpack:FindFirstChild(name) or char:FindFirstChild(name)
+        if tool and tool.Parent ~= char then tool.Parent = char end
+        return tool
+    end
+end
+
+-- --- BUCLE MAESTRO (Entrenamiento Híbrido) ---
+task.spawn(function()
+    while true do
+        task.wait(0.01)
+        if getgenv().fastPunch then
+            if equip("Punch") then
+                VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                pcall(function() ReplicatedStorage.rEvents.punchEvent:FireServer("punchClick") end)
+            end
+        end
+        if getgenv().fastWeight then
+            if equip("Weight") then
+                VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                pcall(function() ReplicatedStorage.rEvents.weightEvent:FireServer("weightClick") end)
+            end
+        end
+    end
+end)
+
+-- --- CREACIÓN DE PESTAÑAS ---
+local TrainTab = Window:CreateTab("Entrenamiento", 4483362458)
+local RocksTab = Window:CreateTab("Rocas", 4483362458)
+local CombatTab = Window:CreateTab("Combate OP", 4483362458)
+local TPTab = Window:CreateTab("Teleports", 4483362458)
+local GiftTab = Window:CreateTab("Regalos", 4483362458)
+
+-- --- PESTAÑA: ENTRENAMIENTO ---
+TrainTab:CreateSection("Fuerza y Tamaño (Híbrido)")
+TrainTab:CreateToggle({
+   Name = "Auto Fast Punch + AutoClick",
+   CurrentValue = false,
+   Callback = function(v) getgenv().fastPunch = v end,
+})
+TrainTab:CreateToggle({
+   Name = "Auto Fast Fuerza (Pesas) + AutoClick",
+   CurrentValue = false,
+   Callback = function(v) getgenv().fastWeight = v end,
+})
+
+-- --- PESTAÑA: ROCAS ---
+RocksTab:CreateSection("Lista de Durabilidad")
+local function AddRock(name, dur)
+    RocksTab:CreateToggle({
+       Name = name .. " (" .. dur .. ")",
+       CurrentValue = false,
+       Callback = function(Value)
+           getgenv().autoFarm = Value
+           selectrock = name
+           if Value then
+               task.spawn(function()
+                   while getgenv().autoFarm and selectrock == name do
+                       task.wait(0.01)
+                       pcall(function()
+                           for _, v in pairs(workspace.machinesFolder:GetDescendants()) do
+                               if v.Name == "neededDurability" and v.Value == dur then
+                                   local r = v.Parent:FindFirstChild("Rock")
+                                   if r and LocalPlayer.Character:FindFirstChild("RightHand") then
+                                       equip("Punch")
+                                       firetouchinterest(r, LocalPlayer.Character.RightHand, 0)
+                                       firetouchinterest(r, LocalPlayer.Character.RightHand, 1)
+                                       VirtualUser:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+                                       ReplicatedStorage.rEvents.punchEvent:FireServer("punchClick")
+                                   end
+                               end
+                           end
+                       end)
+                   end
+               end)
+           end
+       end,
+    })
+end
+AddRock("Starter", 100); AddRock("Beach", 5000); AddRock("Diamond", 20000); 
+AddRock("Frost", 150000); AddRock("Mythical", 400000); AddRock("Ancient Jungle", 10000000)
+
+-- --- PESTAÑA: COMBATE ---
+CombatTab:CreateSection("Teleport Kill (Trae gente)")
+CombatTab:CreateToggle({
+   Name = "TP Kill (Activar)",
+   CurrentValue = false,
+   Callback = function(v) getgenv().autoKill = v end,
+})
+CombatTab:CreateSlider({
+   Name = "Rango de Detección",
+   Min = 50, Max = 500, CurrentValue = 150,
+   Callback = function(v) getgenv().killRange = v end,
+})
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if getgenv().autoKill then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (LocalPlayer.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < getgenv().killRange then
+                        pcall(function()
+                            plr.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+                            equip("Punch")
+                            firetouchinterest(plr.Character.HumanoidRootPart, LocalPlayer.Character.RightHand, 0)
+                            firetouchinterest(plr.Character.HumanoidRootPart, LocalPlayer.Character.RightHand, 1)
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- --- PESTAÑA: TELEPORTS ---
+TPTab:CreateSection("Viaje a Islas")
+local zones = {
+    ["Spawn"] = CFrame.new(2, 8, 115), ["Legend Island"] = CFrame.new(4604, 991, -3887),
+    ["Jungle Island"] = CFrame.new(-8659, 6, 2384), ["Muscle King"] = CFrame.new(-8646, 17, -5738)
+}
+for name, cf in pairs(zones) do
+    TPTab:CreateButton({ Name = "Ir a " .. name, Callback = function() LocalPlayer.Character.HumanoidRootPart.CFrame = cf end })
+end
+
+-- --- PESTAÑA: REGALOS ---
+GiftTab:CreateSection("Envío de Eggs")
+local target, amt = nil, 0
+local pNames = {}
+for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(pNames, p.DisplayName) end end
+
+GiftTab:CreateDropdown({
+   Name = "Jugador", Options = pNames, CurrentOption = {""},
+   Callback = function(o) for _, p in ipairs(Players:GetPlayers()) do if p.DisplayName == o[1] then target = p end end end,
+})
+GiftTab:CreateInput({ Name = "Cantidad", Callback = function(t) amt = tonumber(t) or 0 end })
+GiftTab:CreateButton({
+   Name = "Enviar Eggs",
+   Callback = function()
+       if target and amt > 0 then
+           for i = 1, amt do
+               local itm = LocalPlayer.consumablesFolder:FindFirstChild("Protein Egg")
+               if itm then ReplicatedStorage.rEvents.giftRemote:InvokeServer("giftRequest", target, itm); task.wait(0.1) end
+           end
+       end
+   end,
+})
+
+Rayfield:Notify({Title = "DTH HUB V8", Content = "Pestañas organizadas con éxito.", Duration = 5})
